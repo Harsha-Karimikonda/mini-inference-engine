@@ -1,0 +1,10 @@
+{
+  "title": "Mini-Together Overview",
+  "schemaVersion": 39,
+  "panels": [
+    {"type":"timeseries","title":"Request rate","gridPos":{"h":8,"w":12,"x":0,"y":0},"targets":[{"expr":"rate(mini_requests_total[1m])","legendFormat":"requests/s"}]},
+    {"type":"timeseries","title":"Latency p95","gridPos":{"h":8,"w":12,"x":12,"y":0},"targets":[{"expr":"histogram_quantile(0.95, rate(mini_request_latency_seconds_bucket[5m]))","legendFormat":"p95"}]},
+    {"type":"timeseries","title":"KV cache utilization","gridPos":{"h":8,"w":12,"x":0,"y":8},"targets":[{"expr":"mini_cache_utilization_ratio","legendFormat":"utilization"}]},
+    {"type":"timeseries","title":"Worker health","gridPos":{"h":8,"w":12,"x":12,"y":8},"targets":[{"expr":"mini_worker_health","legendFormat":"{{worker}}"}]}
+  ]
+}

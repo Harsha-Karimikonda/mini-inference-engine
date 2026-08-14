@@ -1,0 +1,15 @@
+services:
+  gateway:
+    build: .
+    command: python -m mini_inference_engine.server
+    ports: ["8000:8000"]
+    environment:
+      MINI_MODEL: mock
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes: ["./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["9090:9090"]
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports: ["3000:3000"]
+    depends_on: [prometheus]
