@@ -1,0 +1,24 @@
+Metadata-Version: 2.4
+Name: mini-together
+Version: 0.1.0
+Summary: A small, observable, fault-tolerant LLM inference control plane
+Requires-Python: >=3.11
+License-File: LICENSE
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn[standard]>=0.27
+Requires-Dist: pydantic>=2.5
+Requires-Dist: httpx>=0.26
+Requires-Dist: prometheus-client>=0.20
+Provides-Extra: gpu
+Requires-Dist: torch>=2.2; extra == "gpu"
+Requires-Dist: transformers>=4.40; extra == "gpu"
+Requires-Dist: accelerate>=0.28; extra == "gpu"
+Provides-Extra: grpc
+Requires-Dist: grpcio>=1.62; extra == "grpc"
+Requires-Dist: grpcio-tools>=1.62; extra == "grpc"
+Requires-Dist: protobuf>=4.25; extra == "grpc"
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"
+Dynamic: license-file

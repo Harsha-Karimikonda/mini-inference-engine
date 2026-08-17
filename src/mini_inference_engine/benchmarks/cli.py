@@ -4,9 +4,15 @@ import json
 import statistics
 import time
 import httpx
+from ..log import configure_logging, get_logger
+
+
+logger = get_logger("benchmark")
 
 
 async def run(args):
+    configure_logging()
+    logger.info("benchmark started", extra={"endpoint": args.endpoint})
     latencies = []
     semaphore = asyncio.Semaphore(args.concurrency)
     async with httpx.AsyncClient(timeout=args.timeout) as client:

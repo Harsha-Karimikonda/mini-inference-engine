@@ -4,6 +4,9 @@ from mini_inference_engine.router import Router, Worker
 
 class FakeScheduler: pass
 
+class RunningScheduler:
+    running = True
+
 def workers():
     return [Worker("a", FakeScheduler(), active=3, queue_depth=4, latency=.4), Worker("b", FakeScheduler(), active=1, queue_depth=2, latency=.2)]
 
@@ -16,3 +19,9 @@ def test_round_robin_and_health():
     router = Router(pool, "round_robin", heartbeat_timeout_s=.01)
     pool[0].last_heartbeat = time.monotonic() - 1
     assert router.choose().worker_id == "b"
+
+def test_running_local_worker_refreshes_health():
+    worker = Worker("local", RunningScheduler())
+    worker.last_heartbeat = time.monotonic() - 1
+    router = Router([worker], heartbeat_timeout_s=.01)
+    assert router.choose().worker_id == "local"

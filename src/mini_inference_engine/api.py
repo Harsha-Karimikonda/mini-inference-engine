@@ -9,9 +9,13 @@ from pydantic import BaseModel, Field, model_validator
 from .backends import MockBackend, TransformersBackend
 from .cache import KVCache
 from .config import Settings
-from .metrics import metrics_response, REQUESTS
+from .metrics import metrics_response, REQUESTS, LATENCY
 from .router import Router, Worker
 from .scheduler import Scheduler
+from .log import configure_logging, get_logger
+
+
+logger = get_logger("api")
 
 
 class CompletionRequest(BaseModel):
@@ -46,45 +50,103 @@ def _error(message: str, error_type: str = "invalid_request_error", status: int 
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
+    configure_logging()
     settings = settings or Settings.from_env()
     workers: list[Worker] = []
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        logger.info("starting inference engine", extra={"model": settings.model})
         backend_factory = lambda: (MockBackend() if settings.model == "mock" else TransformersBackend(settings.model, settings.device))
         for index in range(2):
             scheduler = Scheduler(backend_factory(), KVCache(settings.cache_blocks, settings.cache_block_tokens), settings.max_batch_size, settings.batch_window_ms, settings.max_queue_size)
             await scheduler.start()
             workers.append(Worker(f"worker-{index + 1}", scheduler))
+            logger.info("worker started", extra={"worker": f"worker-{index + 1}"})
         app.state.router = Router(workers, settings.routing_policy, settings.heartbeat_timeout_s)
         yield
         for worker in workers:
             await worker.scheduler.stop()
+            logger.info("worker stopped", extra={"worker": worker.worker_id})
         workers.clear()
+        logger.info("inference engine stopped")
 
     app = FastAPI(title="Mini-Together", version="0.1.0", lifespan=lifespan)
 
+    @app.middleware("http")
+    async def log_request_timing(request: Request, call_next):
+        """Record end-to-end timing for every HTTP response.
+
+        Wrapping the response body iterator ensures streaming requests are
+        timed until the stream actually finishes, rather than only until the
+        ``StreamingResponse`` object is created.
+        """
+
+        started = time.perf_counter()
+
+        def completed(status: int) -> None:
+            duration_ms = round((time.perf_counter() - started) * 1000, 2)
+            LATENCY.observe(duration_ms / 1000)
+            logger.info(
+                "request completed",
+                extra={
+                    "endpoint": request.url.path,
+                    "status": status,
+                    "duration_ms": duration_ms,
+                },
+            )
+
+        try:
+            response = await call_next(request)
+        except Exception:
+            completed(500)
+            raise
+
+        body_iterator = getattr(response, "body_iterator", None)
+        if body_iterator is None:
+            completed(response.status_code)
+            return response
+
+        async def timed_body():
+            try:
+                async for chunk in body_iterator:
+                    yield chunk
+            except Exception:
+                completed(500)
+                raise
+            else:
+                completed(response.status_code)
+
+        response.body_iterator = timed_body()
+        return response
+
     async def generate(request: Request, prompt: str, model: str, max_tokens: int, stream: bool, priority: int, endpoint: str):
+        started = time.monotonic()
         if model != settings.model and not (settings.model == "mock" and model == "mock"):
+            logger.warning("request rejected: model unavailable", extra={"endpoint": endpoint, "status": 404})
             return _error(f"model '{model}' is not available", status=404)
         if max_tokens > settings.max_tokens:
+            logger.warning("request rejected: token limit exceeded", extra={"endpoint": endpoint, "status": 400})
             return _error(f"max_tokens exceeds configured limit of {settings.max_tokens}", status=400)
         try:
             worker = app.state.router.choose()
         except RuntimeError as exc:
+            logger.error("request rejected: no healthy workers", extra={"endpoint": endpoint, "status": 503})
             return _error(str(exc), "service_unavailable", 503)
         worker.active += 1
-        started = time.monotonic()
+        request_id = "cmpl-" + str(int(started * 1000000))
+        logger.info("request accepted", extra={"endpoint": endpoint, "request_id": request_id, "worker": worker.worker_id})
         try:
             iterator = await worker.scheduler.submit(prompt, max_tokens, priority)
-            request_id = "cmpl-" + str(int(started * 1000000))
             if not stream:
                 chunks = []
                 async for token in iterator:
                     if isinstance(token, Exception):
+                        logger.error("request failed during generation", extra={"endpoint": endpoint, "request_id": request_id, "status": 500})
                         return _error(str(token), "server_error", 500)
                     chunks.append(token)
                 REQUESTS.labels(endpoint, "ok").inc()
+                logger.info("generation completed", extra={"endpoint": endpoint, "request_id": request_id, "worker": worker.worker_id, "status": 200, "duration_ms": round((time.monotonic() - started) * 1000, 2)})
                 return {"id": request_id, "object": "text_completion", "model": model, "choices": [{"text": "".join(chunks), "index": 0, "finish_reason": "stop"}]}
 
             async def events():
@@ -99,6 +161,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                         yield f"data: {json.dumps(payload)}\n\n"
                     yield "data: [DONE]\n\n"
                     REQUESTS.labels(endpoint, "ok").inc()
+                    logger.info("generation stream completed", extra={"endpoint": endpoint, "request_id": request_id, "worker": worker.worker_id, "status": 200, "duration_ms": round((time.monotonic() - started) * 1000, 2)})
                 finally:
                     worker.active = max(0, worker.active - 1)
 

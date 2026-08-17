@@ -26,3 +26,16 @@ With Docker Desktop installed, run `docker compose up --build`. The gateway is o
 ## Design
 
 The gateway validates OpenAI-shaped requests, selects a healthy worker using configurable routing, and returns either JSON or OpenAI-style SSE. Each worker owns a bounded priority/FIFO scheduler, dynamic batching window, backend, and logical paged KV-cache allocator. The mock backend makes throughput and failure tests reproducible; the Transformers backend is a simple reference runtime, leaving optimized kernels and speculative decoding for phase two.
+
+## Logging
+
+The service uses the centralized `mini_inference_engine.log` logger. Logs are
+written to stderr at `INFO` level by default. Configure them with:
+
+```bash
+MINI_LOG_LEVEL=DEBUG MINI_LOG_FORMAT=json python -m mini_inference_engine.server
+```
+
+`MINI_LOG_FORMAT` accepts `text` (the default) or `json`. Request logs include
+endpoint, worker, status, request ID, and duration; prompts and generated text
+are never logged.

@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 import asyncio
 from collections.abc import AsyncIterator
+from .log import get_logger
+
+
+logger = get_logger("backend")
 
 
 class Backend(ABC):
@@ -23,6 +27,7 @@ class MockBackend(Backend):
 
 class TransformersBackend(Backend):
     def __init__(self, model_name: str, device: str = "auto"):
+        logger.info("loading transformers backend", extra={"model": model_name})
         try:
             import torch
             from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -38,6 +43,7 @@ class TransformersBackend(Backend):
         elif torch.cuda.is_available():
             self.model.to("cuda")
         self.model.eval()
+        logger.info("transformers backend ready", extra={"model": model_name})
 
     async def generate(self, prompt: str, max_tokens: int) -> AsyncIterator[str]:
         # Kept intentionally simple; the mock backend is used for deterministic service tests.

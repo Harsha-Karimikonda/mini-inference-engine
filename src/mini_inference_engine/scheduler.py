@@ -6,6 +6,10 @@ from collections.abc import AsyncIterator
 from .backends import Backend
 from .cache import KVCache, CachePressure
 from . import metrics
+from .log import get_logger
+
+
+logger = get_logger("scheduler")
 
 
 @dataclass(order=True)
@@ -31,15 +35,18 @@ class Scheduler:
         if not self.running:
             self.running = True
             self._task = asyncio.create_task(self._loop())
+            logger.debug("scheduler started", extra={"queue_size": self.queue.qsize()})
 
     async def stop(self) -> None:
         self.running = False
         if self._task:
             self._task.cancel()
             await asyncio.gather(self._task, return_exceptions=True)
+            logger.debug("scheduler stopped")
 
     async def submit(self, prompt: str, max_tokens: int, priority: int = 0) -> AsyncIterator[str]:
         if self.queue.full():
+            logger.warning("request rejected: scheduler queue is full", extra={"queue_size": self.queue.qsize()})
             raise RuntimeError("scheduler admission limit reached")
         job = Job(priority, time.monotonic(), prompt, max_tokens)
         await self.queue.put(job)
@@ -84,8 +91,10 @@ class Scheduler:
                 metrics.TOKENS.inc()
                 await job.output.put(token)
         except CachePressure as exc:
+            logger.warning("request failed: cache pressure", extra={"request_id": job.request_id}, exc_info=exc)
             await job.output.put(RuntimeError(str(exc)))
         except Exception as exc:
+            logger.exception("request failed in backend", extra={"request_id": job.request_id})
             await job.output.put(exc)
         finally:
             metrics.CACHE_UTILIZATION.set(self.cache.utilization)

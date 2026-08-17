@@ -1,0 +1,2 @@
+[console_scripts]
+benchmark = mini_inference_engine.benchmarks.cli:main
