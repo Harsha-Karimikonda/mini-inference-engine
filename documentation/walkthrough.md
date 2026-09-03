@@ -131,24 +131,37 @@ Phase 1 of the roadmap is implemented and verified, along with real-world model 
 
 ## Verification & Test Results
 
-### 1. Automated Test Suite (24 Tests)
+### 1. Automated Test Suite (28 Tests)
 ```bash
 $ uv run pytest
 ============================= test session starts ==============================
 platform darwin -- Python 3.12.14, pytest-9.1.1, pluggy-1.6.0
-collected 24 items
+collected 28 items
 
-scratch/stress_test.py .                                                 [  4%]
-tests/test_api.py ....                                                   [ 20%]
-tests/test_cache.py ...                                                  [ 33%]
-tests/test_errors.py .....                                               [ 54%]
-tests/test_router.py ........                                            [ 87%]
+scratch/stress_test.py .                                                 [  3%]
+tests/test_api.py ....                                                   [ 17%]
+tests/test_autoscaler.py ....                                            [ 32%]
+tests/test_cache.py ...                                                  [ 42%]
+tests/test_errors.py .....                                               [ 60%]
+tests/test_router.py ........                                            [ 89%]
 tests/test_scheduler.py ...                                              [100%]
 
-======================= 24 passed, 2 warnings in 11.40s ========================
+======================== 28 passed, 2 warnings in 2.12s ========================
 ```
 
-### 2. Code Quality & Linter
+### 2. Burst Stress Test with Dynamic Autoscaler (`Qwen2.5-3B-Instruct` 4-bit)
+- **100 Concurrent Request Burst**: **100 / 100 OK (100%)** in 23.98s, Peak speed: **38.9 tok/s**.
+- **250 Concurrent Request Burst**: **250 / 250 OK (100%)** in 53.28s, Peak speed: **32.0 tok/s**.
+- **600 Saturation Surge**: Autoscaler dynamically spawned `worker-3` and `worker-4`, balancing queue depths evenly across all 4 workers (worker-1: 123, worker-2: 139, worker-3: 153, worker-4: 153).
+- **Cumulative Requests**: Over 1,003 requests served with zero server errors (HTTP 500) and zero Metal crashes.
+
+### 3. Sustained 90-Second Load Test with Dynamic Autoscaler
+- **Duration**: 90 seconds continuous under 12 concurrent client loops.
+- **Worker Coordination**: All 4 workers held latencies within a narrow band of 8.3s to 8.9s, demonstrating equitable load distribution under `latency_aware` routing.
+- **Reliability**: 0 errors, 0 dropped connections, 0 rate limit violations.
+- **Cache Recovery**: After load drained, all 4 workers fully reclaimed their 1,024 blocks (100% cache recovery).
+
+### 4. Code Quality & Linter
 ```bash
 $ uv run ruff check .
 All checks passed!
