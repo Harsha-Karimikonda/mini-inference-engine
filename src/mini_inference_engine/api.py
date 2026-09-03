@@ -65,7 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if settings.model == "mock":
             backend_factory = lambda: MockBackend()
         else:
-            shared_backend = TransformersBackend(settings.model, settings.device)
+            shared_backend = TransformersBackend(settings.model, settings.device, settings.quantization)
             backend_factory = lambda: shared_backend
         for index in range(2):
             scheduler = Scheduler(backend_factory(), KVCache(settings.cache_blocks, settings.cache_block_tokens), settings.max_batch_size, settings.batch_window_ms, settings.max_queue_size)
@@ -255,6 +255,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {
             "model": settings.model,
             "device": settings.device,
+            "quantization": settings.quantization,
             "policy": settings.routing_policy,
             "workers": workers_data,
             "metrics": {

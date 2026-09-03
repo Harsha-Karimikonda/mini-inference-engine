@@ -13,6 +13,7 @@ ruff>=0.4
 torch>=2.2
 transformers>=4.40
 accelerate>=0.28
+bitsandbytes>=0.43
 
 [grpc]
 grpcio>=1.62

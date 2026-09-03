@@ -13,6 +13,7 @@ class Settings:
     cache_blocks: int = 256
     cache_block_tokens: int = 16
     routing_policy: str = "latency_aware"
+    quantization: str = "none"
     heartbeat_timeout_s: float = 5.0
 
     @classmethod
@@ -30,5 +31,6 @@ class Settings:
             cache_blocks=integer("MINI_CACHE_BLOCKS", 256),
             cache_block_tokens=integer("MINI_CACHE_BLOCK_TOKENS", 16),
             routing_policy=os.getenv("MINI_ROUTING_POLICY", "latency_aware"),
+            quantization=os.getenv("MINI_QUANTIZATION", "none").lower(),
             heartbeat_timeout_s=float(os.getenv("MINI_HEARTBEAT_TIMEOUT_S", "5.0")),
         )

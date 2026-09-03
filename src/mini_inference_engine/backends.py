@@ -26,11 +26,15 @@ class MockBackend(Backend):
 
 
 class TransformersBackend(Backend):
-    def __init__(self, model_name: str, device: str = "auto"):
-        logger.info("loading transformers backend", extra={"model": model_name})
+    def __init__(self, model_name: str, device: str = "auto", quantization: str = "none"):
+        logger.info("loading transformers backend", extra={"model": model_name, "quantization": quantization})
         try:
             import torch
-            from transformers import AutoModelForCausalLM, AutoTokenizer
+            from transformers import (
+                AutoModelForCausalLM,
+                AutoTokenizer,
+                BitsAndBytesConfig,
+            )
             from transformers.generation.streamers import BaseStreamer
         except ImportError as exc:
             raise RuntimeError("Install the [gpu] extra for TransformersBackend") from exc
@@ -51,11 +55,24 @@ class TransformersBackend(Backend):
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, dtype=dtype)
-        self.model.to(target_device)
+        load_kwargs: dict[str, object] = {"dtype": dtype}
+        if quantization == "4bit":
+            load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=dtype,
+                bnb_4bit_quant_type="nf4",
+            )
+            load_kwargs["device_map"] = "auto"
+        elif quantization == "8bit":
+            load_kwargs["load_in_8bit"] = True
+            load_kwargs["device_map"] = "auto"
+
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
+        if "device_map" not in load_kwargs:
+            self.model.to(target_device)
         self.model.eval()
         self._lock = asyncio.Lock()
-        logger.info("transformers backend ready", extra={"model": model_name, "device": target_device, "dtype": str(dtype)})
+        logger.info("transformers backend ready", extra={"model": model_name, "device": target_device, "dtype": str(dtype), "quantization": quantization})
 
     async def generate_batch(self, prompts: list[str], max_tokens: int, queues: list[asyncio.Queue[str | None]]) -> None:
         from threading import Thread

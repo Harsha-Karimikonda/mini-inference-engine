@@ -6,6 +6,7 @@ src/mini_inference_engine/api.py
 src/mini_inference_engine/backends.py
 src/mini_inference_engine/cache.py
 src/mini_inference_engine/config.py
+src/mini_inference_engine/dashboard.py
 src/mini_inference_engine/errors.py
 src/mini_inference_engine/log.py
 src/mini_inference_engine/metrics.py

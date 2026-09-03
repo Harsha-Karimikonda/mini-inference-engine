@@ -322,7 +322,8 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         const data = await res.json();
 
         document.getElementById('val-model').textContent = data.model || 'mock';
-        document.getElementById('val-device').textContent = 'Device: ' + (data.device || 'auto');
+        const quantBadge = (data.quantization && data.quantization !== 'none') ? ` (${data.quantization.toUpperCase()})` : '';
+        document.getElementById('val-device').textContent = 'Device: ' + (data.device || 'auto') + quantBadge;
         document.getElementById('val-policy').textContent = data.policy || '-';
         const tps = (data.metrics && data.metrics.tokens_per_sec !== undefined) ? data.metrics.tokens_per_sec.toFixed(1) : '0.0';
         document.getElementById('val-tps').innerHTML = tps + ' <span style="font-size: 14px; font-weight: 500; color: var(--text-muted);">tok/s</span>';

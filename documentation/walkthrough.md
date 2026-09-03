@@ -108,7 +108,14 @@ Phase 1 of the roadmap is implemented and verified, along with real-world model 
   - **Effective Request Rate**: Jumped from **2.60 req/s &rarr; 6.50 req/s**.
   - **Average Latency**: Cut down from **~3,500 ms &rarr; sub-950 ms** across both workers.
   - **Sustained Token Speed**: Maintained **100 to 133 tok/s** continuously throughout the 90 seconds.
-  - **Engine Cumulative Totals**: Surpassed **1,450 requests** (1,453 total) and **16,000 tokens** (16,139 total) with 100% health and zero memory leaks.
+### 13. 4-bit Quantized Model Serving (`Qwen/Qwen2.5-3B-Instruct` NF4)
+- **Files**: [`backends.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/backends.py), [`config.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/config.py), [`dashboard.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/dashboard.py), [`pyproject.toml`](file:///Users/hkarimkonda/Documents/mini-inference-engine/pyproject.toml)
+- **Features**:
+  - Added `quantization: str = "none"` to `Settings` (configured via `MINI_QUANTIZATION="4bit"`).
+  - Integrated `BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4")` into `TransformersBackend` with cross-platform support across Apple Silicon MPS, NVIDIA CUDA, and CPU.
+  - Successfully served **`Qwen/Qwen2.5-3B-Instruct`** in 4-bit NF4 precision, consuming only **~2.2 GB VRAM** (down from ~6.5 GB unquantized FP16) on Apple Silicon Metal.
+  - Dashboard dynamically displays the active quantization badge (`Device: mps (4BIT)`).
+  - Verified streaming and non-streaming responses, yielding sharp Python code generation and proper token usage telemetry.
 
 ---
 
