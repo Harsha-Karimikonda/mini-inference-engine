@@ -26,7 +26,7 @@ logger = get_logger("api")
 class CompletionRequest(BaseModel):
     model: str = "mock"
     prompt: str = Field(min_length=1)
-    max_tokens: int = Field(default=16, ge=1, le=4096)
+    max_tokens: int = Field(default=512, ge=1, le=4096)
     stream: bool = False
     priority: int = Field(default=0, ge=-10, le=10)
 
@@ -39,7 +39,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     model: str = "mock"
     messages: list[ChatMessage] = Field(min_length=1)
-    max_tokens: int = Field(default=16, ge=1, le=4096)
+    max_tokens: int = Field(default=512, ge=1, le=4096)
     stream: bool = False
     priority: int = Field(default=0, ge=-10, le=10)
 

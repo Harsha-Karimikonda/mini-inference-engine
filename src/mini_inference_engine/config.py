@@ -9,8 +9,8 @@ class Settings:
     max_batch_size: int = 8
     batch_window_ms: int = 8
     max_queue_size: int = 256
-    max_tokens: int = 128
-    cache_blocks: int = 256
+    max_tokens: int = 2048
+    cache_blocks: int = 1024
     cache_block_tokens: int = 16
     routing_policy: str = "latency_aware"
     quantization: str = "none"
@@ -27,8 +27,8 @@ class Settings:
             max_batch_size=integer("MINI_MAX_BATCH_SIZE", 8),
             batch_window_ms=integer("MINI_BATCH_WINDOW_MS", 8),
             max_queue_size=integer("MINI_MAX_QUEUE_SIZE", 256),
-            max_tokens=integer("MINI_MAX_TOKENS", 128),
-            cache_blocks=integer("MINI_CACHE_BLOCKS", 256),
+            max_tokens=integer("MINI_MAX_TOKENS", 2048),
+            cache_blocks=integer("MINI_CACHE_BLOCKS", 1024),
             cache_block_tokens=integer("MINI_CACHE_BLOCK_TOKENS", 16),
             routing_policy=os.getenv("MINI_ROUTING_POLICY", "latency_aware"),
             quantization=os.getenv("MINI_QUANTIZATION", "none").lower(),

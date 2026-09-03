@@ -302,7 +302,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         <button class="btn" id="send-btn" onclick="sendPrompt()">Generate Response</button>
         <label style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
           Max Tokens:
-          <input type="number" id="max-tokens" value="48" min="1" max="256" style="width: 60px; background: #080c14; border: 1px solid var(--card-border); color: #fff; padding: 4px 6px; border-radius: 4px;">
+          <input type="number" id="max-tokens" value="256" min="1" max="2048" style="width: 70px; background: #080c14; border: 1px solid var(--card-border); color: #fff; padding: 4px 6px; border-radius: 4px;">
         </label>
         <span id="gen-stats" style="font-size: 13px; color: var(--accent); margin-left: auto;"></span>
       </div>
