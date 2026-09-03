@@ -273,6 +273,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if autoscaler:
             autoscaler_info = autoscaler.get_status()
 
+        prefix_cache_info = None
+        if router and router.workers:
+            backend = getattr(router.workers[0].scheduler, "backend", None)
+            if hasattr(backend, "prefix_cache") and backend.prefix_cache:
+                prefix_cache_info = backend.prefix_cache.stats()
+
         return {
             "model": settings.model,
             "device": settings.device,
@@ -280,6 +286,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "policy": settings.routing_policy,
             "workers": workers_data,
             "autoscaler": autoscaler_info,
+            "prefix_cache": prefix_cache_info,
             "metrics": {
                 "tokens": total_tokens,
                 "requests": total_requests,

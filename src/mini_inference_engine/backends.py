@@ -15,10 +15,28 @@ class Backend(ABC):
 
 class MockBackend(Backend):
     def __init__(self, delay: float = 0.002):
+        from .prefix_cache import PrefixCache
+
         self.delay = delay
+        self.prefix_cache = PrefixCache(block_tokens=16, max_cached_blocks=128)
 
     async def generate(self, prompt: str, max_tokens: int) -> AsyncIterator[str]:
         words = ("mini", "together", "inference", "engine", "stream")
+        dummy_tokens = [abs(hash(w)) % 1000 for w in prompt.split()]
+        if self.prefix_cache:
+            matched_pkv, _ = self.prefix_cache.match(dummy_tokens)
+            if not matched_pkv and len(dummy_tokens) >= 16:
+                # Mock dummy cache insert
+                class DummyLayer:
+                    keys = type("Tensor", (), {"shape": [1, 4, 16, 64], "clone": lambda self: self})()
+                    values = type("Tensor", (), {"shape": [1, 4, 16, 64], "clone": lambda self: self})()
+
+                class DummyCache:
+                    def __init__(self):
+                        self.layers = [DummyLayer()]
+
+                self.prefix_cache.insert(dummy_tokens, DummyCache())
+
         seed = sum(ord(c) for c in prompt) % len(words)
         for i in range(max_tokens):
             await asyncio.sleep(self.delay)
@@ -67,6 +85,9 @@ class TransformersBackend(Backend):
             load_kwargs["load_in_8bit"] = True
             load_kwargs["device_map"] = "auto"
 
+        from .prefix_cache import PrefixCache
+
+        self.prefix_cache = PrefixCache(block_tokens=16, max_cached_blocks=512)
         self.model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
         if "device_map" not in load_kwargs:
             self.model.to(target_device)
@@ -123,7 +144,22 @@ class TransformersBackend(Backend):
                 "pad_token_id": self.tokenizer.pad_token_id,
             }
 
-            thread = Thread(target=self.model.generate, kwargs=generation_kwargs)
+            token_ids: list[int] = []
+            if batch_size == 1 and self.prefix_cache:
+                token_ids = inputs["input_ids"][0].tolist()
+                cached_pkv, _ = self.prefix_cache.match(token_ids)
+                if cached_pkv is not None:
+                    generation_kwargs["past_key_values"] = cached_pkv
+
+            def run_generation():
+                try:
+                    res = self.model.generate(**generation_kwargs, return_dict_in_generate=True)
+                    if hasattr(res, "past_key_values") and self.prefix_cache and batch_size == 1:
+                        self.prefix_cache.insert(token_ids, res.past_key_values)
+                except Exception as exc:
+                    logger.exception("generation error", exc_info=exc)
+
+            thread = Thread(target=run_generation)
             thread.start()
             try:
                 await loop.run_in_executor(None, thread.join)

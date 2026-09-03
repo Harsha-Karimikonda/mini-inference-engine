@@ -279,8 +279,18 @@ DASHBOARD_HTML = """<!DOCTYPE html>
             <div class="val" id="cache-blocks">- / -</div>
           </div>
         </div>
-        <div class="card-subtext" style="margin-top: 14px;">
-          Logical paged allocation model tracking dynamic sequence block assignments and LRU eviction pressure.
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+          <div class="stat-box">
+            <div class="lbl">Prefix Reuse Hit Rate</div>
+            <div class="val" id="cache-prefix-hitrate" style="color: var(--accent);">0.0%</div>
+          </div>
+          <div class="stat-box">
+            <div class="lbl">Prefix Tokens Saved</div>
+            <div class="val" id="cache-prefix-saved" style="color: var(--success);">0</div>
+          </div>
+        </div>
+        <div class="card-subtext" style="margin-top: 14px;" id="cache-subtext">
+          Logical paged allocation model with cross-request chunked prefix KV reuse.
         </div>
       </div>
     </div>
@@ -399,6 +409,13 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         document.getElementById('cache-util-bar').style.width = utilPct + '%';
         document.getElementById('cache-frag').textContent = Math.round(totalFrag * 100) + '%';
         document.getElementById('cache-blocks').textContent = (totalBlocks > 0) ? (totalBlocks - freeBlocks) + ' / ' + totalBlocks : '-';
+
+        if (data.prefix_cache && data.prefix_cache.enabled) {
+          const pc = data.prefix_cache;
+          document.getElementById('cache-prefix-hitrate').textContent = pc.hit_rate_pct.toFixed(1) + '%';
+          document.getElementById('cache-prefix-saved').textContent = pc.tokens_saved.toLocaleString() + ' toks';
+          document.getElementById('cache-subtext').textContent = `Prefix Reuse: ${pc.hits} hits / ${pc.misses} misses (${pc.cached_entries} cached prefixes, ${pc.cached_blocks} blocks).`;
+        }
       } catch (e) {
         console.error('Status fetch error:', e);
       }
