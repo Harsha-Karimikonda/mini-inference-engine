@@ -67,15 +67,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else:
             shared_backend = TransformersBackend(settings.model, settings.device, settings.quantization)
             backend_factory = lambda: shared_backend
-        for index in range(2):
+        initial_workers = settings.min_workers if settings.autoscale_enabled else 2
+        for index in range(initial_workers):
             scheduler = Scheduler(backend_factory(), KVCache(settings.cache_blocks, settings.cache_block_tokens), settings.max_batch_size, settings.batch_window_ms, settings.max_queue_size)
             await scheduler.start()
             workers.append(Worker(f"worker-{index + 1}", scheduler))
             logger.info("worker started", extra={"worker": f"worker-{index + 1}"})
         app.state.router = Router(workers, settings.routing_policy, settings.heartbeat_timeout_s)
+
+        autoscaler = None
+        if settings.autoscale_enabled:
+            from .autoscaler import AutoScaler
+
+            autoscaler = AutoScaler(app.state.router, settings, backend_factory)
+            await autoscaler.start()
+            app.state.autoscaler = autoscaler
+
         yield
-        for worker in workers:
-            await worker.scheduler.stop()
+
+        if autoscaler:
+            await autoscaler.stop()
+        for worker in list(app.state.router.workers):
+            try:
+                await worker.scheduler.stop()
+            except Exception as exc:
+                logger.debug("worker stop error", exc_info=exc)
             logger.info("worker stopped", extra={"worker": worker.worker_id})
         workers.clear()
         logger.info("inference engine stopped")
@@ -224,6 +240,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 w_info = {
                     "id": w.worker_id,
                     "healthy": w.healthy,
+                    "draining": getattr(w, "draining", False),
                     "active": w.active,
                     "queue_depth": w.queue_depth,
                     "latency_ms": round(w.latency * 1000, 2),
@@ -251,6 +268,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             logger.debug("unable to read request metric", exc_info=exc)
 
         live_tps = round(prometheus_metrics.get_tokens_per_second(), 1)
+        autoscaler_info = None
+        autoscaler = getattr(app.state, "autoscaler", None)
+        if autoscaler:
+            autoscaler_info = autoscaler.get_status()
 
         return {
             "model": settings.model,
@@ -258,6 +279,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "quantization": settings.quantization,
             "policy": settings.routing_policy,
             "workers": workers_data,
+            "autoscaler": autoscaler_info,
             "metrics": {
                 "tokens": total_tokens,
                 "requests": total_requests,

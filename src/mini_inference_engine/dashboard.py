@@ -331,9 +331,26 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         document.getElementById('val-requests').textContent = (data.metrics && data.metrics.requests !== undefined) ? data.metrics.requests : '0';
 
         const workers = data.workers || [];
-        document.getElementById('val-workers-summary').textContent = workers.length + ' Workers Registered';
+        if (data.autoscaler && data.autoscaler.enabled) {
+          const a = data.autoscaler;
+          const stateColor = a.state === 'scaling_up' ? 'var(--accent)' : (a.state === 'scaling_down' ? 'var(--warning)' : 'var(--success)');
+          document.getElementById('val-workers-summary').innerHTML = `${workers.length} Active · <span style="color: ${stateColor}; font-weight: 600;">${a.state.toUpperCase()}</span> (Cap: ${a.min_workers}-${a.max_workers})`;
+        } else {
+          document.getElementById('val-workers-summary').textContent = workers.length + ' Workers Registered';
+        }
 
         let workersHtml = '';
+        if (data.autoscaler && data.autoscaler.enabled) {
+          const a = data.autoscaler;
+          const stateColor = a.state === 'scaling_up' ? 'var(--accent)' : (a.state === 'scaling_down' ? 'var(--warning)' : 'var(--success)');
+          workersHtml += `
+            <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <span>⚡ <strong>Dynamic Autoscaler:</strong> ${a.min_workers} to ${a.max_workers} Safe Workers (${a.hardware_usable_ram_gb} GB Usable RAM)</span>
+              <span style="color: ${stateColor}; font-weight: 600;">● ${a.state.toUpperCase()}</span>
+            </div>
+          `;
+        }
+
         let totalUtil = 0;
         let totalFrag = 0;
         let freeBlocks = 0;
@@ -341,10 +358,15 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 
         workers.forEach(w => {
           const isHealthy = w.healthy;
-          const statusClass = isHealthy ? 'style="color: var(--success);"' : 'style="color: var(--danger);"';
-          const statusText = isHealthy ? 'Healthy' : 'Unhealthy';
+          const isDraining = w.draining;
+          let statusClass = isHealthy ? 'style="color: var(--success);"' : 'style="color: var(--danger);"';
+          let statusText = isHealthy ? 'Healthy' : 'Unhealthy';
+          if (isDraining) {
+            statusClass = 'style="color: var(--warning);"';
+            statusText = 'Draining...';
+          }
           workersHtml += `
-            <div class="worker-card">
+            <div class="worker-card" style="${isDraining ? 'opacity: 0.7; border-color: rgba(234, 179, 8, 0.3);' : ''}">
               <div class="worker-header">
                 <span class="worker-id">${w.id}</span>
                 <span style="font-size: 12px; font-weight: 600;" ${statusClass}>● ${statusText}</span>

@@ -15,11 +15,20 @@ class Settings:
     routing_policy: str = "latency_aware"
     quantization: str = "none"
     heartbeat_timeout_s: float = 5.0
+    autoscale_enabled: bool = True
+    min_workers: int = 2
+    max_workers: int = 0  # 0 means auto-detect based on hardware & model
+    scale_up_threshold: int = 3
+    scale_down_idle_s: float = 20.0
 
     @classmethod
     def from_env(cls) -> "Settings":
         def integer(name: str, default: int) -> int:
             return int(os.getenv(name, default))
+
+        def boolean(name: str, default: bool) -> bool:
+            val = os.getenv(name)
+            return default if val is None else val.lower() in ("true", "1", "yes")
 
         return cls(
             model=os.getenv("MINI_MODEL", "mock"),
@@ -33,4 +42,9 @@ class Settings:
             routing_policy=os.getenv("MINI_ROUTING_POLICY", "latency_aware"),
             quantization=os.getenv("MINI_QUANTIZATION", "none").lower(),
             heartbeat_timeout_s=float(os.getenv("MINI_HEARTBEAT_TIMEOUT_S", "5.0")),
+            autoscale_enabled=boolean("MINI_AUTOSCALE_ENABLED", True),
+            min_workers=integer("MINI_MIN_WORKERS", 2),
+            max_workers=integer("MINI_MAX_WORKERS", 0),
+            scale_up_threshold=integer("MINI_SCALE_UP_THRESHOLD", 3),
+            scale_down_idle_s=float(os.getenv("MINI_SCALE_DOWN_IDLE_S", "20.0")),
         )

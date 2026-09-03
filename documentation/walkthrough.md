@@ -117,6 +117,16 @@ Phase 1 of the roadmap is implemented and verified, along with real-world model 
   - Dashboard dynamically displays the active quantization badge (`Device: mps (4BIT)`).
   - Verified streaming and non-streaming responses, yielding sharp Python code generation and proper token usage telemetry.
 
+### 14. Dynamic Hardware-Aware Autoscaler & Elastic Worker Pool
+- **Files**: [`autoscaler.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/autoscaler.py), [`router.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/router.py), [`api.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/api.py), [`config.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/config.py), [`dashboard.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/src/mini_inference_engine/dashboard.py)
+- **Features**:
+  - **Model & Hardware Capacity Sizing**: Automatically estimates memory footprint based on model parameter count (0.5B, 3B, 7B, etc.), precision (`4bit`, `8bit`, `fp16`), and machine RAM/VRAM via `psutil`/`torch.cuda`.
+  - **Contention Safety**: Caps maximum worker concurrency (e.g. 4 on Apple Silicon MPS or single GPU) to avoid command buffer thrashing while reserving OS headroom.
+  - **Burst Elasticity**: When request backlog surges, the background loop automatically scales the worker pool up from $N_{\min}=2$ up to $N_{\max}=4$.
+  - **Graceful Drain**: When traffic subsides, idle workers are marked `draining`, allow in-flight requests to complete cleanly, reclaim KV-cache blocks, and are safely stopped and removed.
+  - **Dashboard Telemetry**: Real-time autoscaler status card displaying capacity bounds, usable RAM, and live scaling state (`STABLE` / `SCALING_UP` / `SCALING_DOWN`).
+- **Verified**: Full automated test suite passes with 28 tests in [`tests/test_autoscaler.py`](file:///Users/hkarimkonda/Documents/mini-inference-engine/tests/test_autoscaler.py). Live burst surge verified scaling from 2 &rarr; 4 workers and draining back down upon idle.
+
 ---
 
 ## Verification & Test Results
