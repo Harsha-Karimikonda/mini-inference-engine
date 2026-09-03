@@ -1,5 +1,7 @@
 import pytest
-from mini_inference_engine.cache import KVCache, CachePressure
+
+from mini_inference_engine.cache import CachePressure, KVCache
+
 
 def test_allocate_release_and_reuse():
     cache = KVCache(4, 4)

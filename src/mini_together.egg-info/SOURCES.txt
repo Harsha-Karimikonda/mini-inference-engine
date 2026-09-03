@@ -6,6 +6,8 @@ src/mini_inference_engine/api.py
 src/mini_inference_engine/backends.py
 src/mini_inference_engine/cache.py
 src/mini_inference_engine/config.py
+src/mini_inference_engine/errors.py
+src/mini_inference_engine/log.py
 src/mini_inference_engine/metrics.py
 src/mini_inference_engine/router.py
 src/mini_inference_engine/scheduler.py
@@ -20,5 +22,6 @@ src/mini_together.egg-info/requires.txt
 src/mini_together.egg-info/top_level.txt
 tests/test_api.py
 tests/test_cache.py
+tests/test_errors.py
 tests/test_router.py
 tests/test_scheduler.py

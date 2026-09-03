@@ -1,4 +1,5 @@
-PYTHON ?= python3
+VENV ?= .venv
+PYTHON ?= $(if $(wildcard $(VENV)/bin/python),$(VENV)/bin/python,python3)
 
 install:
 	$(PYTHON) -m pip install '.[dev]'

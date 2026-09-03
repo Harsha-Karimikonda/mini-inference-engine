@@ -39,3 +39,14 @@ MINI_LOG_LEVEL=DEBUG MINI_LOG_FORMAT=json python -m mini_inference_engine.server
 `MINI_LOG_FORMAT` accepts `text` (the default) or `json`. Request logs include
 endpoint, worker, status, request ID, and duration; prompts and generated text
 are never logged.
+
+## Documentation
+
+Full architectural guides, performance experiments, and forward plans are consolidated in the [`documentation/`](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation) folder:
+
+- [Architecture](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/architecture.md) – Gateway, worker lifecycle, and routing policies.
+- [Design Notes](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/design.md) – KV-cache allocator, streaming semantics, and request cancellation.
+- [Performance Experiments](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/performance.md) – Latency benchmarking and throughput analysis.
+- [Plan Ahead](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/Plan_ahead.md) – Worker RPC boundary and continuous batching roadmap.
+- [Plan Ahead (Extreme Edition)](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/Plan_ahead_extreme.md) – Edge orchestration and distributed serverless GPU architecture.
+

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -30,5 +30,5 @@ class Settings:
             cache_blocks=integer("MINI_CACHE_BLOCKS", 256),
             cache_block_tokens=integer("MINI_CACHE_BLOCK_TOKENS", 16),
             routing_policy=os.getenv("MINI_ROUTING_POLICY", "latency_aware"),
-            heartbeat_timeout_s=float(os.getenv("MINI_HEARTBEAT_TIMEOUT_S", 5.0)),
+            heartbeat_timeout_s=float(os.getenv("MINI_HEARTBEAT_TIMEOUT_S", "5.0")),
         )

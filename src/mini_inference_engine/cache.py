@@ -1,9 +1,7 @@
-from dataclasses import dataclass
 from collections import OrderedDict
+from dataclasses import dataclass
 
-
-class CachePressure(RuntimeError):
-    pass
+from .errors import CachePressure
 
 
 @dataclass

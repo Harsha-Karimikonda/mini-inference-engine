@@ -1,2 +1,13 @@
 uv.lock
 *.pyc
+__pycache__/
+.venv
+.venv/
+venv
+venv/
+.bin/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+scratch/
+.vscode/
