@@ -47,6 +47,8 @@ Full architectural guides, performance experiments, and forward plans are consol
 - [Architecture](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/architecture.md) – Gateway, worker lifecycle, and routing policies.
 - [Design Notes](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/design.md) – KV-cache allocator, streaming semantics, and request cancellation.
 - [Performance Experiments](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/performance.md) – Latency benchmarking and throughput analysis.
+- [Implementation Plan](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/implementation_plan.md) – Complete multi-phase engineering plan.
+- [Walkthrough](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/walkthrough.md) – Full verification logs, test results, stress tests, and batching speedup benchmarks.
 - [Plan Ahead](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/Plan_ahead.md) – Worker RPC boundary and continuous batching roadmap.
 - [Plan Ahead (Extreme Edition)](file:///Users/hkarimkonda/Documents/mini-inference-engine/documentation/Plan_ahead_extreme.md) – Edge orchestration and distributed serverless GPU architecture.
 
